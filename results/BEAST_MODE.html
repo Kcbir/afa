@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Figure 3: Attention Contagion Dynamics in Cross-Sector Equity Networks</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background: #fff;
+            color: #1a1a1a;
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 11px;
+        }
+        
+        #paper {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 40px 50px;
+        }
+        
+        .fig-header {
+            border-bottom: 1px solid #000;
+            padding-bottom: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .fig-header h1 {
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+        
+        .fig-header .authors {
+            font-size: 10px;
+            font-style: italic;
+            color: #444;
+        }
+        
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 280px;
+            gap: 30px;
+        }
+        
+        .figure-container {
+            border: 1px solid #ccc;
+            background: #fafafa;
+            position: relative;
+        }
+        
+        .figure-label {
+            position: absolute;
+            top: 8px;
+            left: 10px;
+            font-weight: bold;
+            font-size: 10px;
+        }
+        
+        #network-canvas {
+            width: 100%;
+            height: 480px;
+        }
+        
+        .right-panel h2 {
+            font-size: 11px;
+            font-weight: bold;
+            border-bottom: 1px solid #000;
+            padding-bottom: 4px;
+            margin-bottom: 10px;
+        }
+        
+        .equation-box {
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            padding: 12px;
+            margin-bottom: 16px;
+            font-family: 'Times New Roman', Times, serif;
+        }
+        
+        .equation {
+            text-align: center;
+            font-size: 13px;
+            margin: 8px 0;
+        }
+        
+        .equation-label {
+            text-align: right;
+            font-size: 10px;
+            color: #666;
+        }
+        
+        .params-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10px;
+            margin-bottom: 16px;
+        }
+        
+        .params-table th, .params-table td {
+            border: 1px solid #ccc;
+            padding: 4px 6px;
+            text-align: left;
+        }
+        
+        .params-table th {
+            background: #f0f0f0;
+            font-weight: bold;
+        }
+        
+        .legend-box {
+            margin-bottom: 16px;
+        }
+        
+        .legend-title {
+            font-weight: bold;
+            font-size: 10px;
+            margin-bottom: 6px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin: 3px 0;
+            font-size: 10px;
+        }
+        
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+        
+        .legend-line {
+            width: 20px;
+            height: 2px;
+        }
+        
+        .stats-panel {
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-bottom: 16px;
+        }
+        
+        .stats-panel h3 {
+            font-size: 10px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            padding: 2px 0;
+            border-bottom: 1px dotted #ddd;
+        }
+        
+        .stat-row:last-child { border: none; }
+        
+        .stat-value {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+        }
+        
+        .node-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 9px;
+            margin-top: 10px;
+        }
+        
+        .node-table th, .node-table td {
+            border: 1px solid #ddd;
+            padding: 3px 5px;
+            text-align: center;
+        }
+        
+        .node-table th {
+            background: #f0f0f0;
+            font-weight: bold;
+        }
+        
+        .node-table .ticker { text-align: left; font-weight: bold; }
+        
+        .caption {
+            margin-top: 20px;
+            font-size: 10px;
+            line-height: 1.5;
+            text-align: justify;
+        }
+        
+        .caption strong { font-weight: bold; }
+        
+        .time-indicator {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            background: rgba(255,255,255,0.9);
+            padding: 2px 6px;
+            border: 1px solid #999;
+        }
+        
+        .scale-bar {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            font-size: 9px;
+        }
+        
+        .scale-bar .bar {
+            width: 60px;
+            height: 6px;
+            background: linear-gradient(to right, #fff, #1a1a1a);
+            border: 1px solid #999;
+            margin-bottom: 2px;
+        }
+        
+        .scale-labels {
+            display: flex;
+            justify-content: space-between;
+            width: 62px;
+        }
+    </style>
+</head>
+<body>
+    <div id="paper">
+        <div class="fig-header">
+            <h1>Figure 3: Temporal Evolution of Attention Propagation in Cross-Sector Equity Networks</h1>
+            <div class="authors">Synthetic demonstration of contagion dynamics under exponential decay model (§4.2)</div>
+        </div>
+        
+        <div class="main-grid">
+            <div>
+                <div class="figure-container">
+                    <div class="figure-label">(a) Network State at t = <span id="t-label">0.0</span>h</div>
+                    <canvas id="network-canvas"></canvas>
+                    <div class="time-indicator">τ = <span id="tau">0.00</span>h</div>
+                    <div class="scale-bar">
+                        <div class="bar"></div>
+                        <div class="scale-labels"><span>0</span><span>A<sub>max</sub></span></div>
+                    </div>
+                </div>
+                
+                <div class="caption">
+                    <strong>Figure 3.</strong> Information propagation dynamics across N=16 equity nodes spanning five market sectors. 
+                    Node opacity encodes instantaneous attention A<sub>i</sub>(t), with edges weighted by empirical correlation strength w<sub>ij</sub>. 
+                    Attention propagates via nearest-neighbor coupling with decay rate λ=0.30 h<sup>−1</sup>. 
+                    Panel (a) shows network state; panel (b) reports propagation statistics. 
+                    Directed edges indicate information flow with arrow size proportional to transmission intensity β·w<sub>ij</sub>·A<sub>i</sub>(t).
+                    Simulation parameters calibrated to Reddit/Twitter attention half-life of ~2.3h (Appendix B).
+                </div>
+            </div>
+            
+            <div class="right-panel">
+                <h2>Model Specification</h2>
+                
+                <div class="equation-box">
+                    <div class="equation">
+                        dA<sub>i</sub>/dt = −λA<sub>i</sub> + β Σ<sub>j∈N(i)</sub> w<sub>ij</sub>A<sub>j</sub>
+                    </div>
+                    <div class="equation-label">(Eq. 4)</div>
+                </div>
+                
+                <table class="params-table">
+                    <tr><th>Param</th><th>Value</th><th>Description</th></tr>
+                    <tr><td>λ</td><td>0.30 h<sup>−1</sup></td><td>Decay rate</td></tr>
+                    <tr><td>β</td><td>0.85</td><td>Coupling strength</td></tr>
+                    <tr><td>Δt</td><td>0.5 h</td><td>Time resolution</td></tr>
+                    <tr><td>N</td><td>16</td><td>Network size</td></tr>
+                    <tr><td>|E|</td><td>26</td><td>Edge count</td></tr>
+                </table>
+                
+                <div class="legend-box">
+                    <div class="legend-title">Sector Classification</div>
+                    <div class="legend-item"><span class="legend-dot" style="background:#2563eb"></span> Technology (n=5)</div>
+                    <div class="legend-item"><span class="legend-dot" style="background:#7c3aed"></span> Financials (n=3)</div>
+                    <div class="legend-item"><span class="legend-dot" style="background:#ca8a04"></span> Consumer (n=2)</div>
+                    <div class="legend-item"><span class="legend-dot" style="background:#16a34a"></span> Healthcare (n=3)</div>
+                    <div class="legend-item"><span class="legend-dot" style="background:#dc2626"></span> Energy (n=3)</div>
+                </div>
+                
+                <div class="legend-box">
+                    <div class="legend-title">Edge Encoding</div>
+                    <div class="legend-item"><span class="legend-line" style="background:#1a1a1a"></span> w<sub>ij</sub> > 0.7 (strong)</div>
+                    <div class="legend-item"><span class="legend-line" style="background:#888"></span> 0.4 < w<sub>ij</sub> ≤ 0.7</div>
+                    <div class="legend-item"><span class="legend-line" style="background:#ccc"></span> w<sub>ij</sub> ≤ 0.4 (weak)</div>
+                </div>
+                
+                <div class="stats-panel">
+                    <h3>Propagation Statistics (t=<span id="stats-t">0</span>h)</h3>
+                    <div class="stat-row"><span>Active nodes (A>0.05):</span><span class="stat-value" id="s-active">0</span></div>
+                    <div class="stat-row"><span>Σ A<sub>i</sub>(t):</span><span class="stat-value" id="s-sum">0.000</span></div>
+                    <div class="stat-row"><span>max A<sub>i</sub>(t):</span><span class="stat-value" id="s-max">0.000</span></div>
+                    <div class="stat-row"><span>Mean degree (active):</span><span class="stat-value" id="s-degree">0.0</span></div>
+                    <div class="stat-row"><span>Cascade depth:</span><span class="stat-value" id="s-depth">0</span></div>
+                </div>
+                
+                <h2>Node Activations</h2>
+                <table class="node-table" id="node-table">
+                    <tr><th>Ticker</th><th>Sector</th><th>A(t)</th><th>Rank</th></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('network-canvas');
+        const ctx = canvas.getContext('2d');
+        
+        const nodes = [
+            { id: 'NVDA', sector: 'tech', x: 0.35, y: 0.18 },
+            { id: 'AAPL', sector: 'tech', x: 0.45, y: 0.25 },
+            { id: 'MSFT', sector: 'tech', x: 0.30, y: 0.30 },
+            { id: 'GOOGL', sector: 'tech', x: 0.50, y: 0.15 },
+            { id: 'META', sector: 'tech', x: 0.22, y: 0.22 },
+            { id: 'TSLA', sector: 'consumer', x: 0.15, y: 0.45 },
+            { id: 'AMZN', sector: 'consumer', x: 0.60, y: 0.35 },
+            { id: 'JPM', sector: 'finance', x: 0.12, y: 0.65 },
+            { id: 'GS', sector: 'finance', x: 0.08, y: 0.55 },
+            { id: 'BAC', sector: 'finance', x: 0.20, y: 0.72 },
+            { id: 'JNJ', sector: 'health', x: 0.75, y: 0.50 },
+            { id: 'PFE', sector: 'health', x: 0.82, y: 0.40 },
+            { id: 'UNH', sector: 'health', x: 0.70, y: 0.60 },
+            { id: 'XOM', sector: 'energy', x: 0.45, y: 0.75 },
+            { id: 'CVX', sector: 'energy', x: 0.55, y: 0.82 },
+            { id: 'COP', sector: 'energy', x: 0.38, y: 0.85 }
+        ];
+        
+        nodes.forEach(n => { n.attention = 0; n.depth = -1; });
+        
+        const edges = [
+            ['NVDA', 'AAPL', 0.85], ['NVDA', 'MSFT', 0.80], ['NVDA', 'GOOGL', 0.75],
+            ['AAPL', 'MSFT', 0.80], ['AAPL', 'GOOGL', 0.70], ['MSFT', 'GOOGL', 0.75],
+            ['META', 'GOOGL', 0.70], ['META', 'MSFT', 0.65], ['NVDA', 'META', 0.60],
+            ['TSLA', 'NVDA', 0.70], ['TSLA', 'AAPL', 0.50], ['AMZN', 'MSFT', 0.60],
+            ['AMZN', 'GOOGL', 0.55], ['JPM', 'GS', 0.85], ['JPM', 'BAC', 0.80],
+            ['GS', 'BAC', 0.75], ['JNJ', 'PFE', 0.70], ['JNJ', 'UNH', 0.65],
+            ['PFE', 'UNH', 0.60], ['XOM', 'CVX', 0.90], ['XOM', 'COP', 0.80],
+            ['CVX', 'COP', 0.85], ['JPM', 'XOM', 0.40], ['GS', 'TSLA', 0.35],
+            ['AAPL', 'AMZN', 0.50], ['NVDA', 'TSLA', 0.60]
+        ];
+        
+        const colors = { tech: '#2563eb', finance: '#7c3aed', consumer: '#ca8a04', health: '#16a34a', energy: '#dc2626' };
+        const sectorNames = { tech: 'Tech', finance: 'Fin', consumer: 'Cons', health: 'Hlth', energy: 'Engy' };
+        
+        const events = [
+            { time: 0, ticker: 'NVDA', type: 'earnings', intensity: 0.95 },
+            { time: 3, ticker: 'AAPL', type: 'product', intensity: 0.75 },
+            { time: 8, ticker: 'TSLA', type: 'social', intensity: 0.88 },
+            { time: 15, ticker: 'JPM', type: 'macro', intensity: 0.65 },
+            { time: 24, ticker: 'XOM', type: 'commodity', intensity: 0.72 },
+            { time: 35, ticker: 'GOOGL', type: 'ai_news', intensity: 0.82 },
+            { time: 48, ticker: 'META', type: 'upgrade', intensity: 0.55 },
+            { time: 60, ticker: 'PFE', type: 'fda', intensity: 0.68 }
+        ];
+        
+        let time = 0, eventIdx = 0, lastFrame = 0, maxDepth = 0;
+        const flowParticles = [];
+        
+        function resize() {
+            const c = canvas.parentElement;
+            canvas.width = c.clientWidth;
+            canvas.height = c.clientHeight;
+        }
+        
+        function pos(n) { return { x: n.x * canvas.width, y: n.y * canvas.height }; }
+        
+        function propagate(src, intensity) {
+            const visited = new Map(), queue = [[src, intensity, 0]];
+            maxDepth = 0;
+            while (queue.length) {
+                const [id, att, d] = queue.shift();
+                if (visited.has(id)) continue;
+                const decay = att * Math.exp(-0.3 * d * 0.5);
+                if (decay < 0.02) continue;
+                visited.set(id, decay);
+                maxDepth = Math.max(maxDepth, d);
+                const node = nodes.find(n => n.id === id);
+                if (node) { 
+                    node.attention = Math.min(1, node.attention + decay);
+                    if (node.depth < 0 || d < node.depth) node.depth = d;
+                }
+                edges.forEach(([f, t, w]) => {
+                    const next = f === id ? t : t === id ? f : null;
+                    if (next && !visited.has(next)) {
+                        queue.push([next, decay * w * 0.85, d + 1]);
+                        // Add flow particle
+                        const n1 = nodes.find(n => n.id === id);
+                        const n2 = nodes.find(n => n.id === next);
+                        if (n1 && n2 && decay * w > 0.1) {
+                            flowParticles.push({ from: id, to: next, progress: 0, intensity: decay * w });
+                        }
+                    }
+                });
+            }
+        }
+        
+        function draw() {
+            ctx.fillStyle = '#fafafa';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Subtle grid
+            ctx.strokeStyle = '#eee';
+            ctx.lineWidth = 0.5;
+            for (let x = 0; x < canvas.width; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke(); }
+            for (let y = 0; y < canvas.height; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke(); }
+            
+            // Edges
+            edges.forEach(([f, t, w]) => {
+                const n1 = nodes.find(n => n.id === f), n2 = nodes.find(n => n.id === t);
+                if (!n1 || !n2) return;
+                const p1 = pos(n1), p2 = pos(n2);
+                const active = n1.attention > 0.05 && n2.attention > 0.05;
+                
+                ctx.beginPath();
+                ctx.moveTo(p1.x, p1.y);
+                ctx.lineTo(p2.x, p2.y);
+                ctx.strokeStyle = w > 0.7 ? '#1a1a1a' : w > 0.4 ? '#888' : '#ccc';
+                ctx.lineWidth = active ? w * 2 : w * 0.8;
+                ctx.globalAlpha = active ? 1 : 0.4;
+                ctx.stroke();
+                ctx.globalAlpha = 1;
+                
+                // Draw arrow for active edges
+                if (active && (n1.attention > n2.attention * 1.2 || n2.attention > n1.attention * 1.2)) {
+                    const source = n1.attention > n2.attention ? p1 : p2;
+                    const target = n1.attention > n2.attention ? p2 : p1;
+                    const angle = Math.atan2(target.y - source.y, target.x - source.x);
+                    const mx = (source.x + target.x) / 2;
+                    const my = (source.y + target.y) / 2;
+                    const arrowSize = 5 + w * 3;
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(mx + arrowSize * Math.cos(angle), my + arrowSize * Math.sin(angle));
+                    ctx.lineTo(mx + arrowSize * Math.cos(angle + 2.5), my + arrowSize * Math.sin(angle + 2.5));
+                    ctx.lineTo(mx + arrowSize * Math.cos(angle - 2.5), my + arrowSize * Math.sin(angle - 2.5));
+                    ctx.closePath();
+                    ctx.fillStyle = '#1a1a1a';
+                    ctx.fill();
+                }
+            });
+            
+            // Flow particles (neuron-like signal transmission)
+            flowParticles.forEach((p, i) => {
+                const n1 = nodes.find(n => n.id === p.from), n2 = nodes.find(n => n.id === p.to);
+                if (!n1 || !n2) return;
+                const p1 = pos(n1), p2 = pos(n2);
+                const x = p1.x + (p2.x - p1.x) * p.progress;
+                const y = p1.y + (p2.y - p1.y) * p.progress;
+                
+                ctx.beginPath();
+                ctx.arc(x, y, 2 + p.intensity * 2, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(26, 26, 26, ${0.8 * (1 - p.progress)})`;
+                ctx.fill();
+                
+                p.progress += 0.03;
+                if (p.progress >= 1) flowParticles.splice(i, 1);
+            });
+            
+            // Nodes
+            nodes.forEach(n => {
+                const p = pos(n), c = colors[n.sector], a = n.attention;
+                const radius = 18;
+                
+                // Node fill based on attention (grayscale for paper look)
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+                const gray = Math.floor(255 - a * 200);
+                ctx.fillStyle = a > 0.05 ? `rgb(${gray},${gray},${gray})` : '#fff';
+                ctx.fill();
+                ctx.strokeStyle = c;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                // Ticker label
+                ctx.fillStyle = a > 0.3 ? '#fff' : '#1a1a1a';
+                ctx.font = 'bold 9px Times New Roman';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(n.id, p.x, p.y);
+            });
+            
+            // Axis labels
+            ctx.fillStyle = '#666';
+            ctx.font = 'italic 9px Times New Roman';
+            ctx.textAlign = 'center';
+            ctx.fillText('Cross-sector coupling topology', canvas.width / 2, canvas.height - 8);
+        }
+        
+        function updateUI() {
+            document.getElementById('t-label').textContent = time.toFixed(1);
+            document.getElementById('tau').textContent = time.toFixed(2);
+            document.getElementById('stats-t').textContent = time.toFixed(1);
+            
+            const active = nodes.filter(n => n.attention > 0.05);
+            document.getElementById('s-active').textContent = active.length;
+            document.getElementById('s-sum').textContent = nodes.reduce((s, n) => s + n.attention, 0).toFixed(3);
+            document.getElementById('s-max').textContent = Math.max(...nodes.map(n => n.attention)).toFixed(3);
+            document.getElementById('s-degree').textContent = active.length > 0 ? 
+                (active.reduce((s, n) => s + edges.filter(e => e[0] === n.id || e[1] === n.id).length, 0) / active.length).toFixed(1) : '0.0';
+            document.getElementById('s-depth').textContent = maxDepth;
+            
+            const sorted = nodes.slice().sort((a, b) => b.attention - a.attention);
+            document.getElementById('node-table').innerHTML = 
+                '<tr><th>Ticker</th><th>Sector</th><th>A(t)</th><th>Rank</th></tr>' +
+                sorted.slice(0, 8).map((n, i) => 
+                    `<tr><td class="ticker">${n.id}</td><td>${sectorNames[n.sector]}</td><td>${n.attention.toFixed(3)}</td><td>${i + 1}</td></tr>`
+                ).join('');
+        }
+        
+        function tick(ts) {
+            const dt = (ts - lastFrame) / 1000;
+            lastFrame = ts;
+            
+            time += dt * 3;
+            
+            while (eventIdx < events.length && events[eventIdx].time <= time) {
+                propagate(events[eventIdx].ticker, events[eventIdx].intensity);
+                eventIdx++;
+            }
+            
+            nodes.forEach(n => { 
+                n.attention *= 0.992; 
+                if (n.attention < 0.005) { n.attention = 0; n.depth = -1; }
+            });
+            
+            if (time > 72) { 
+                time = 0; 
+                eventIdx = 0; 
+                maxDepth = 0;
+                nodes.forEach(n => { n.attention = 0; n.depth = -1; }); 
+            }
+            
+            draw();
+            updateUI();
+            requestAnimationFrame(tick);
+        }
+        
+        window.onresize = resize;
+        resize();
+        requestAnimationFrame(tick);
+    </script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(chmod:*)",
+      "Bash(pip install:*)",
+      "Bash(python generate_results.py:*)",
+      "Bash(tree:*)",
+      "Bash(python generate_live.py:*)",
+      "Bash(python -c:*)",
+      "Bash(python:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

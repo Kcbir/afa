@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infinite Galaxy</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            overflow: hidden;
+            background: #000000;
+        }
+
+        canvas {
+            background: #000000;
+        }
+
+        #canvas {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+
+    <script id="vertex-shader" type="x-shader/x-vertex">
+        attribute vec4 a_position;
+        attribute vec2 a_texcoord;
+
+        varying vec2 v_texcoord;
+
+        void main() {
+            gl_Position = a_position;
+            v_texcoord = a_texcoord;
+        }
+    </script>
+
+    <script id="fragment-shader" type="x-shader/x-fragment">
+        precision highp float;
+
+        uniform float u_time;
+        uniform vec2 u_resolution;
+
+        varying vec2 v_texcoord;
+
+        // Hash function for randomness
+        float hash(vec3 p) {
+            p = fract(p * vec3(443.537, 537.247, 247.428));
+            p += dot(p, p.yxz + 19.19);
+            return fract((p.x + p.y) * p.z);
+        }
+
+        // 3D noise
+        float noise(vec3 p) {
+            vec3 i = floor(p);
+            vec3 f = fract(p);
+            f = f * f * (3.0 - 2.0 * f);
+
+            return mix(
+                mix(mix(hash(i + vec3(0,0,0)), hash(i + vec3(1,0,0)), f.x),
+                    mix(hash(i + vec3(0,1,0)), hash(i + vec3(1,1,0)), f.x), f.y),
+                mix(mix(hash(i + vec3(0,0,1)), hash(i + vec3(1,0,1)), f.x),
+                    mix(hash(i + vec3(0,1,1)), hash(i + vec3(1,1,1)), f.x), f.y),
+                f.z);
+        }
+
+        // Fractal Brownian Motion
+        float fbm(vec3 p) {
+            float value = 0.0;
+            float amplitude = 0.5;
+            float frequency = 1.0;
+
+            for(int i = 0; i < 6; i++) {
+                value += amplitude * noise(p * frequency);
+                frequency *= 2.0;
+                amplitude *= 0.5;
+            }
+
+            return value;
+        }
+
+        // Create bright visible stars
+        float stars(vec2 uv, float layer) {
+            vec2 p = uv * 30.0 / layer;
+            vec2 gv = fract(p) - 0.5;
+            vec2 id = floor(p);
+
+            float star = 0.0;
+
+            for(float y = -1.0; y <= 1.0; y++) {
+                for(float x = -1.0; x <= 1.0; x++) {
+                    vec2 offset = vec2(x, y);
+                    vec2 cellId = id + offset;
+
+                    float n = hash(vec3(cellId, layer));
+
+                    if(n > 0.6) {
+                        vec2 pos = offset + vec2(
+                            hash(vec3(cellId, layer + 1.0)),
+                            hash(vec3(cellId, layer + 2.0))
+                        ) - 0.5;
+
+                        float d = length(gv - pos);
+
+                        // Static, realistic stars - no animation
+                        float size = 0.002 * (n + 0.3);
+
+                        // Star core - sharp and bright
+                        star += smoothstep(size, 0.0, d) * n * 2.0;
+
+                        // Subtle glow around star
+                        star += exp(-d * 40.0) * 0.15 * n;
+                    }
+                }
+            }
+
+            return star;
+        }
+
+        // Nebula clouds
+        float nebula(vec3 p) {
+            float n = fbm(p * 0.5);
+            n += fbm(p * 1.0) * 0.5;
+            n += fbm(p * 2.0) * 0.25;
+            return n;
+        }
+
+        void main() {
+            vec2 uv = (v_texcoord * 2.0 - 1.0) * vec2(u_resolution.x / u_resolution.y, 1.0);
+
+            // Extremely slow drift - almost imperceptible
+            float angle = u_time * 0.002;
+            mat2 rot = mat2(cos(angle), -sin(angle), sin(angle), cos(angle));
+            vec2 movingUv = uv;
+            movingUv += vec2(u_time * 0.001, u_time * 0.0007);
+
+            // Initialize color
+            vec3 color = vec3(0.0);
+
+            // Multiple star layers for depth and parallax
+            for(float i = 1.0; i <= 5.0; i++) {
+                float layer = i;
+                vec2 layerUv = movingUv * rot / layer;
+
+                // Stars at this depth
+                float starField = stars(layerUv, layer);
+
+                // Realistic star colors - mostly white with subtle tints
+                float colorSeed = hash(vec3(floor(layerUv * 10.0), layer));
+                vec3 starColor = vec3(0.9, 0.95, 1.0);
+
+                if(colorSeed > 0.85) {
+                    starColor = vec3(1.0, 0.92, 0.85); // Warm
+                } else if(colorSeed > 0.80) {
+                    starColor = vec3(0.85, 0.9, 1.0); // Cool
+                }
+
+                // Natural depth fade
+                float fade = 1.0 / (layer * 0.5 + 0.5);
+                color += starField * starColor * fade * 2.0;
+            }
+
+            // Slowly flowing deep space nebula
+            vec3 nebulaPos = vec3(movingUv * 0.3, u_time * 0.002);
+            float nebulaDensity = fbm(nebulaPos * 1.5);
+
+            // Deep space colors - visible but elegant
+            vec3 nebulaColor1 = vec3(0.15, 0.10, 0.25); // Purple
+            vec3 nebulaColor2 = vec3(0.10, 0.15, 0.30); // Blue
+            vec3 nebulaColor3 = vec3(0.20, 0.12, 0.18); // Magenta
+
+            vec3 nebulaColor = mix(nebulaColor1, nebulaColor2, noise(nebulaPos));
+            nebulaColor = mix(nebulaColor, nebulaColor3, noise(nebulaPos + vec3(50.0)));
+
+            color += nebulaColor * pow(nebulaDensity, 2.0) * 1.5;
+
+            // Static voxel particles - no animation
+            vec2 gridUv = movingUv * 50.0;
+            vec2 gridId = floor(gridUv);
+            vec2 gridGv = fract(gridUv) - 0.5;
+
+            float particle = 0.0;
+            for(float y = -1.0; y <= 1.0; y++) {
+                for(float x = -1.0; x <= 1.0; x++) {
+                    vec2 offset = vec2(x, y);
+                    vec2 cellId = gridId + offset;
+
+                    float n = hash(vec3(cellId, 0.0));
+
+                    if(n > 0.92) {
+                        vec2 pos = offset + vec2(
+                            hash(vec3(cellId, 1.0)),
+                            hash(vec3(cellId, 2.0))
+                        ) - 0.5;
+
+                        float d = length(gridGv - pos);
+                        particle += exp(-d * 150.0) * 0.15;
+                    }
+                }
+            }
+
+            color += vec3(0.15, 0.20, 0.30) * particle;
+
+            // Static dust field - barely moving
+            float dust = fbm(vec3(movingUv * 2.0, u_time * 0.003));
+            color += vec3(0.10, 0.12, 0.18) * pow(dust, 4.0) * 0.5;
+
+            // Brighten overall
+            color *= 1.3;
+
+            // Gentle vignette
+            float vignette = 1.0 - length(uv) * 0.25;
+            vignette = pow(vignette, 1.2);
+            color *= vignette;
+
+            // Subtle bloom on bright areas
+            float brightness = dot(color, vec3(0.299, 0.587, 0.114));
+            color += color * pow(brightness, 3.0) * 0.4;
+
+            gl_FragColor = vec4(color, 1.0);
+        }
+    </script>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const gl = canvas.getContext('webgl');
+
+        if (!gl) {
+            alert('WebGL not supported');
+            throw new Error('WebGL not supported');
+        }
+
+        // Set canvas size
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            gl.viewport(0, 0, canvas.width, canvas.height);
+        }
+        resize();
+        window.addEventListener('resize', resize);
+
+        // Create shader
+        function createShader(gl, type, source) {
+            const shader = gl.createShader(type);
+            gl.shaderSource(shader, source);
+            gl.compileShader(shader);
+
+            if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+                console.error('Shader compile error:', gl.getShaderInfoLog(shader));
+                gl.deleteShader(shader);
+                return null;
+            }
+
+            return shader;
+        }
+
+        // Create program
+        function createProgram(gl, vertexShader, fragmentShader) {
+            const program = gl.createProgram();
+            gl.attachShader(program, vertexShader);
+            gl.attachShader(program, fragmentShader);
+            gl.linkProgram(program);
+
+            if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+                console.error('Program link error:', gl.getProgramInfoLog(program));
+                gl.deleteProgram(program);
+                return null;
+            }
+
+            return program;
+        }
+
+        // Get shader sources
+        const vertexShaderSource = document.getElementById('vertex-shader').text;
+        const fragmentShaderSource = document.getElementById('fragment-shader').text;
+
+        // Create shaders and program
+        const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
+        const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
+        const program = createProgram(gl, vertexShader, fragmentShader);
+
+        // Get attribute and uniform locations
+        const positionLocation = gl.getAttribLocation(program, 'a_position');
+        const texcoordLocation = gl.getAttribLocation(program, 'a_texcoord');
+        const timeLocation = gl.getUniformLocation(program, 'u_time');
+        const resolutionLocation = gl.getUniformLocation(program, 'u_resolution');
+
+        // Create a buffer for a full-screen quad
+        const positionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+        const positions = [
+            -1, -1,
+             1, -1,
+            -1,  1,
+            -1,  1,
+             1, -1,
+             1,  1,
+        ];
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
+
+        // Create texture coordinate buffer
+        const texcoordBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, texcoordBuffer);
+        const texcoords = [
+            0, 0,
+            1, 0,
+            0, 1,
+            0, 1,
+            1, 0,
+            1, 1,
+        ];
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(texcoords), gl.STATIC_DRAW);
+
+        // Render loop
+        let startTime = Date.now();
+
+        function render() {
+            const time = (Date.now() - startTime) / 1000;
+
+            gl.clearColor(0, 0, 0, 1);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+
+            gl.useProgram(program);
+
+            // Set position attribute
+            gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+            gl.enableVertexAttribArray(positionLocation);
+            gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+
+            // Set texcoord attribute
+            gl.bindBuffer(gl.ARRAY_BUFFER, texcoordBuffer);
+            gl.enableVertexAttribArray(texcoordLocation);
+            gl.vertexAttribPointer(texcoordLocation, 2, gl.FLOAT, false, 0, 0);
+
+            // Set uniforms
+            gl.uniform1f(timeLocation, time);
+            gl.uniform2f(resolutionLocation, canvas.width, canvas.height);
+
+            // Draw
+            gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+            requestAnimationFrame(render);
+        }
+
+        render();
+    </script>
+</body>
+</html>
